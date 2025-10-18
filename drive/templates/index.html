@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Google Drive Folder Explorer</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; padding: 2em; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 2em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; text-align: center; }
+        form { margin-bottom: 2em; text-align: center; }
+        input[type="text"] { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; border: none; background-color: #007BFF; color: white; border-radius: 4px; cursor: pointer; }
+        ul { list-style-type: none; padding-left: 0; }
+        li { padding: 8px 0; border-bottom: 1px solid #eee; }
+        li a { text-decoration: none; color: #007BFF; }
+        #itemList .unmatched {
+  display: none;
+}
+
+    </style>
+    <script>
+        // Wait for the DOM to be fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const itemList = document.getElementById('itemList');
+            const items = itemList.getElementsByTagName('li');
+
+            searchInput.addEventListener('input', function() {
+                const filter = searchInput.value.toLowerCase();
+
+                for (let i = 0; i < items.length; i++) {
+                    const itemText = items[i].textContent.toLowerCase();
+                    
+                    if (itemText.includes(filter)) {
+                        // Show the item if it contains the search filter
+                        items[i].classList.remove('unmatched');
+                    } else {
+                        // Hide the item if it doesn't match
+                        items[i].classList.add('unmatched');
+                    }
+                }
+            });
+        });
+    </script>
+<style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        
+        #search-container {
+            margin-bottom: 20px;
+        }
+        
+        #searchInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        #itemList {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        #itemList li {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            transition: opacity 0.3s ease;
+        }
+        
+        /* This class hides unmatched items */
+        #itemList li.unmatched {
+            display: none;
+        }
+    </style>
+    <style>
+        /* (Styling remains the same, but add styles for the form and button) */
+        body { font-family: 'Arial', sans-serif; padding: 2em; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 2em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; text-align: center; }
+        form { margin-bottom: 2em; text-align: center; }
+        input[type="text"] { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 15px; border: none; background-color: #007BFF; color: white; border-radius: 4px; cursor: pointer; margin-left: 5px;}
+        button.edit-btn { background-color: #ffc107; color: #333; }
+        button.edit-btn:hover { background-color: #e0a800; }
+        ul { list-style-type: none; padding-left: 0; }
+        li { padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        li a { text-decoration: none; color: #007BFF; flex-grow: 1; }
+        .edit-form-container { display: none; } /* Initially hide edit form */
+        .folder-item-content { display: flex; align-items: center; width: 100%; }
+        .folder-link-text { flex-grow: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Public Google Drive Folder Explorer</h1>
+        <form method="post">
+            <label for="folder_url">Enter Google Drive Public Folder Link:</label>
+            <input type="text" id="folder_url" name="folder_url" placeholder="e.g., https://drive.google.com/drive/folders/..." required>
+            <button type="submit">Load & Save Folder</button>
+        </form>
+
+        <hr>
+<div id="search-container">
+        <h1>Fuzzy Search</h1>
+        <input type="text" id="searchInput" placeholder="Search here...">
+    </div>
+
+        <h2>Saved Folders</h2>
+                {% if saved_folders %}
+            <ul>
+                {% for folder in saved_folders %}
+                    <li>
+                        <div class="folder-item-content" id="view-{{ folder.folder_id }}">
+                            <a href="{{ url_for('drive.display_folder', folder_id=folder.folder_id) }}" class="folder-link-text">{{ folder.folder_name }}</a>
+                            <div class="action-buttons">
+                                <button class="edit-btn" onclick="showEditForm('{{ folder.folder_id }}')">Edit</button>
+                                
+                                <form method="post" action="{{ url_for('drive.delete_folder', folder_id=folder.folder_id) }}" onsubmit="return confirm('Are you sure you want to delete the entry for {{ folder.folder_name }}?');">
+                                    <button type="submit" class="delete-btn">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="edit-form-container" id="edit-{{ folder.folder_id }}">
+                            <form method="post" action="{{ url_for('drive.edit_folder', folder_id=folder.folder_id) }}">
+                                <input type="text" name="new_folder_name" value="{{ folder.folder_name }}" required>
+                                <button type="submit">Save</button>
+                                <button type="button" onclick="showView('{{ folder.folder_id }}')">Cancel</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="text-align: center;">No folders saved yet. Add one above.</p>
+        {% endif %}
+    </div>
+    <script>
+        function showEditForm(folderId) {
+            document.getElementById('view-' + folderId).style.display = 'none';
+            document.getElementById('edit-' + folderId).style.display = 'flex';
+        }
+
+        function showView(folderId) {
+            document.getElementById('view-' + folderId).style.display = 'flex';
+            document.getElementById('edit-' + folderId).style.display = 'none';
+        }
+    </script>
+<footer>
+    <div style="text-align:center; padding: 20px; background-color:#f1f1f1; font-family: Arial, sans-serif;">
+        <p style="margin: 5px; font-size: 14px;">Greader 🗂️🔍 Version 1.1</p>
+        <p style="margin: 5px; font-size: 14px;">
+            Usage: Access files using a fuzzy search path. The system will try to find matches even if the name is incomplete or contains typos. Use paths in the following format:
+        </p>
+        <p style="margin: 5px; font-size: 14px;">
+            <span 
+                class="hover-info" 
+                style="border-bottom: 1px dotted #000; cursor: pointer;">
+                <strong>greader.pythonanywhere.com/drive/folder/subdir/file</strong>
+                <span class="popup-text">
+                    <strong>Example 1:</strong> <code>greader.pythonanywhere.com/drive/folder/documnt</code> - Fuzzy search will match "document" even with a typo.<br>
+                    <strong>Example 2:</strong> <code>greader.pythonanywhere.com/drive/images/photo</code> - Finds "photo" even if you only type part of the name.
+                </span>
+            </span> 
+            or 
+            <span 
+                class="hover-info" 
+                style="border-bottom: 1px dotted #000; cursor: pointer;">
+                <strong>folder/file</strong>
+                <span class="popup-text">
+                    <strong>Example 3:</strong> <code>folder/photo</code> - Matches "photo" inside "folder" without needing extensions.<br>
+                    <strong>Example 4:</strong> <code>images/pho</code> - Fuzzy search will match "photo" even if you type just part of the name.
+                </span>
+            </span>.
+        </p>
+        <p style="margin: 5px; font-size: 14px;">
+            <strong>Important:</strong> Each subdirectory 
+            <span 
+                class="hover-info" 
+                style="border-bottom: 1px dotted #000; cursor: pointer;">
+                needs to be typed explicitly
+                <span class="popup-text">
+                    <strong>Example 5:</strong> <code>greader/pythonanywhere.com/drive/subdir/reprt</code> - Fuzzy search will find "report" despite a misspelling.
+                </span>
+            </span>. 
+        </p>
+        <span 
+            class="hover-info" 
+            style="border-bottom: 1px dotted #000; cursor: pointer;">
+            💡 <strong>Show Usage Examples</strong>
+            <span class="popup-text">
+                <strong>Example 6:</strong> <code>greader.pythonanywhere.com/drive/projects/cod</code> - Finds "code" inside the "projects" folder even if only part of the name is typed.
+            </span>
+        </span>
+    </div>
+</footer>
+
+<style>
+    .hover-info {
+        position: relative;
+        display: inline-block;
+    }
+
+    .popup-text {
+        visibility: hidden;
+        width: 250px;
+        background-color: #f9f9f9;
+        color: #333;
+        text-align: left;
+        border: 1px solid #ccc;
+        padding: 10px;
+        position: absolute;
+        z-index: 1;
+        bottom: 100%; /* Position the popup above the text */
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .hover-info:hover .popup-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .popup-text code {
+        font-size: 12px;
+        background-color: #e1e1e1;
+        padding: 2px 4px;
+        border-radius: 4px;
+    }
+</style>
+
+</body>
+</html>
