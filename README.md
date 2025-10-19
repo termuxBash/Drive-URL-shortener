@@ -38,5 +38,6 @@ Routes like `/drive/folder1/folder2` accepted
 # Examples
 
 + `/drive/fe/ec/lab`
++ [`Hosted version (Keep my API limits in mind)`](https://greader.pythonanywhere.com/drive/fe)
 
 **All the directorys need to me explicitly mentioned**
